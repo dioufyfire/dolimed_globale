@@ -1,0 +1,73 @@
+##################################################
+# DOLIMED — dépôt limité au module CabinetMed
+##################################################
+
+# Ignorer tout le contenu du projet
+/*
+
+# Autoriser les fichiers de gestion du dépôt
+!/.gitignore
+!/README.md
+
+# Autoriser la traversée jusqu'au module
+!/htdocs/
+/htdocs/*
+
+# Autoriser tout le code CabinetMed
+!/htdocs/cabinetmed/
+!/htdocs/cabinetmed/**
+
+##################################################
+# EXCLUSIONS À L’INTÉRIEUR DE CABINETMED
+##################################################
+
+# Documents patients et fichiers générés
+/htdocs/cabinetmed/documents/
+/htdocs/cabinetmed/uploads/
+/htdocs/cabinetmed/files/
+/htdocs/cabinetmed/generated/
+
+# Répertoires temporaires
+/htdocs/cabinetmed/temp/
+/htdocs/cabinetmed/tmp/
+/htdocs/cabinetmed/cache/
+/htdocs/cabinetmed/sessions/
+
+# Journaux
+/htdocs/cabinetmed/logs/
+*.log
+
+# Sauvegardes
+*.bak
+*.backup
+*.old
+*.orig
+*.save
+*.swp
+*~
+
+# Archives et exports
+*.zip
+*.tar
+*.tar.gz
+*.sql.gz
+
+# Données médicales et exports
+*.csv
+*.xlsx
+*.ods
+*.pdf
+
+# Secrets et configurations locales
+.env
+.env.*
+*.local.php
+config.local.php
+secrets.php
+credentials.php
+
+# Éditeurs et système
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
