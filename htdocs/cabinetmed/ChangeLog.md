@@ -1,5 +1,11 @@
 # ChangeLog
 
+## 7.0.3
+
+- Group pediatric postnatal history under one general alert.
+- Add feeding, EPI vaccination, vaccination reminders and schooling fields.
+- Count the postnatal section as one item in the history tab badge.
+
 
 ## 7.0.1
 

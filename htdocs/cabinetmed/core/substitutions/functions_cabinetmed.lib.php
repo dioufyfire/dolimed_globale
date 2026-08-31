@@ -154,7 +154,8 @@ function cabinetmed_completesubstitutionarray(&$substitutionarray,$langs,$object
             if ($object->note_traitspec) $nbofnotes++;
             if ($object->note_antenataux) $nbofnotes++;
             if ($object->note_perinataux) $nbofnotes++;
-            if ($object->note_postnataux) $nbofnotes++;
+            // The whole Postnatal section counts as a single history item.
+            if ($object->note_postnataux || $object->note_alimentation || $object->statut_vaccination_pev || $object->note_vaccination_pev || $object->statut_vaccination_rappels || $object->note_vaccination_rappels || $object->note_scolarite) $nbofnotes++;
             if ($nbofnotes > 0) $substitutionarray['TabAntecedentsShort']=$langs->trans("AntecedentsShort").' <span class="badge">'.$nbofnotes.'</span>';
        	}
 

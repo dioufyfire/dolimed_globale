@@ -388,7 +388,8 @@ class Patient extends Societe
         $sql .= ', te.code as typent_code';
         $sql .= ', sa.note_antemed, sa.note_antechirgen, sa.note_antechirortho, sa.note_anterhum, sa.note_other';
         $sql .= ', sa.note_traitclass, sa.note_traitallergie, sa.note_traitintol, sa.note_traitspec';
-        $sql .= ', sa.note_antenataux, sa.note_perinataux, sa.note_postnataux';
+        $sql .= ', sa.note_antenataux, sa.note_perinataux, sa.note_postnataux, sa.note_alimentation, sa.statut_vaccination_pev, sa.note_vaccination_pev';
+        $sql .= ', sa.statut_vaccination_rappels, sa.note_vaccination_rappels, sa.note_scolarite';
         $sql .= ', sa.alert_antemed, sa.alert_antechirgen, sa.alert_antechirortho, sa.alert_anterhum, sa.alert_other';
         $sql .= ', sa.alert_traitclass, sa.alert_traitallergie, sa.alert_traitintol, sa.alert_traitspec';
         $sql .= ', sa.alert_antenataux, sa.alert_perinataux, sa.alert_postnataux';
@@ -538,6 +539,12 @@ class Patient extends Societe
                 $this->note_antenataux = $obj->note_antenataux;
                 $this->note_perinataux = $obj->note_perinataux;
                 $this->note_postnataux = $obj->note_postnataux;
+                $this->note_alimentation = $obj->note_alimentation;
+                $this->statut_vaccination_pev = $obj->statut_vaccination_pev;
+                $this->note_vaccination_pev = $obj->note_vaccination_pev;
+                $this->statut_vaccination_rappels = $obj->statut_vaccination_rappels;
+                $this->note_vaccination_rappels = $obj->note_vaccination_rappels;
+                $this->note_scolarite = $obj->note_scolarite;
 
                 $this->alert_antemed = $obj->alert_antemed;
                 $this->alert_antechirgen = $obj->alert_antechirgen;

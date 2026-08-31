@@ -74,17 +74,25 @@ if ($action == 'addupdate')
     $note_antenataux = isset($_POST['note_antenataux']) ? $db->escape($_POST['note_antenataux']) : '';
     $note_perinataux = isset($_POST['note_perinataux']) ? $db->escape($_POST['note_perinataux']) : '';
     $note_postnataux = isset($_POST['note_postnataux']) ? $db->escape($_POST['note_postnataux']) : '';
+    $note_alimentation = isset($_POST['note_alimentation']) ? $db->escape($_POST['note_alimentation']) : '';
+    $statut_vaccination_pev = isset($_POST['statut_vaccination_pev']) ? $_POST['statut_vaccination_pev'] : '';
+    $note_vaccination_pev = isset($_POST['note_vaccination_pev']) ? $db->escape($_POST['note_vaccination_pev']) : '';
+    $statut_vaccination_rappels = isset($_POST['statut_vaccination_rappels']) ? $_POST['statut_vaccination_rappels'] : '';
+    $note_vaccination_rappels = isset($_POST['note_vaccination_rappels']) ? $db->escape($_POST['note_vaccination_rappels']) : '';
+    $note_scolarite = isset($_POST['note_scolarite']) ? $db->escape($_POST['note_scolarite']) : '';
+    if (!in_array($statut_vaccination_pev, array('', 'up_to_date', 'incomplete', 'not_started', 'unknown'), true)) $statut_vaccination_pev = '';
+    if (!in_array($statut_vaccination_rappels, array('', 'up_to_date', 'late', 'unknown'), true)) $statut_vaccination_rappels = '';
 
     $db->begin();
 
     $sql = "INSERT INTO ".MAIN_DB_PREFIX."cabinetmed_patient(rowid, note_antemed, note_antechirgen, note_antechirortho, note_anterhum, note_other, note_traitallergie, note_traitclass, note_traitintol, note_traitspec";
-    if ($is_pediatrie) $sql.= ", note_antenataux, note_perinataux, note_postnataux";
+    if ($is_pediatrie) $sql.= ", note_antenataux, note_perinataux, note_postnataux, note_alimentation, statut_vaccination_pev, note_vaccination_pev, statut_vaccination_rappels, note_vaccination_rappels, note_scolarite";
     $sql.= ")";
     $sql.= " VALUES('".$socid."',";
     $sql.= " '".addslashes($_POST["note_antemed"])."','".addslashes($_POST["note_antechirgen"])."',";
     $sql.= " '".addslashes($_POST["note_antechirortho"])."','".addslashes($_POST["note_anterhum"])."','".addslashes($_POST["note_other"])."',";
     $sql.= " '".addslashes($_POST["note_traitallergie"])."','".addslashes($_POST["note_traitclass"])."','".addslashes($_POST["note_traitintol"])."','".addslashes($_POST["note_traitspec"])."'";
-    if ($is_pediatrie) $sql.= ", '".$note_antenataux."','".$note_perinataux."','".$note_postnataux."'";
+    if ($is_pediatrie) $sql.= ", '".$note_antenataux."','".$note_perinataux."','".$note_postnataux."','".$note_alimentation."','".$statut_vaccination_pev."','".$note_vaccination_pev."','".$statut_vaccination_rappels."','".$note_vaccination_rappels."','".$note_scolarite."'";
     $sql.= ")";
     $result1 = $db->query($sql,1);
     //if (! $result) dol_print_error($db);
@@ -103,6 +111,12 @@ if ($action == 'addupdate')
         $sql.= ", note_antenataux='".$note_antenataux."'";
         $sql.= ", note_perinataux='".$note_perinataux."'";
         $sql.= ", note_postnataux='".$note_postnataux."'";
+        $sql.= ", note_alimentation='".$note_alimentation."'";
+        $sql.= ", statut_vaccination_pev='".$statut_vaccination_pev."'";
+        $sql.= ", note_vaccination_pev='".$note_vaccination_pev."'";
+        $sql.= ", statut_vaccination_rappels='".$statut_vaccination_rappels."'";
+        $sql.= ", note_vaccination_rappels='".$note_vaccination_rappels."'";
+        $sql.= ", note_scolarite='".$note_scolarite."'";
     }
     $sql.= " WHERE rowid=".$socid;
     $result2 = $db->query($sql);
@@ -376,20 +390,70 @@ if ($socid > 0)
         print '</td></tr></table>';
         print '</div></div></div>';
 
-        print '<div class="fichecenter"><div class="fichehalfleft">';
+        // Postnatal information is one pediatric history group with one alert.
+        print '<div class="fichecenter">';
         print '<table class="border" width="100%" style="margin-bottom: 2px !important;">';
-        print '<tr height="80"><td class="tdtop titlefield">'.$langs->trans("AntecedentsPostnataux");
-        print '<br><input type="checkbox" name="alert_postnataux"'.((isset($_POST['alert_postnataux'])?GETPOST('alert_postnataux'):$object->alert_postnataux)?' checked="checked"':'').'> '.$langs->trans("Alert");
-        print '</td><td class="tdtop">';
+        print '<tr class="liste_titre"><td colspan="4">'.$langs->trans("AntecedentsPostnataux");
+        print ' &nbsp; <input type="checkbox" name="alert_postnataux"'.((isset($_POST['alert_postnataux'])?GETPOST('alert_postnataux'):$object->alert_postnataux)?' checked="checked"':'').'> '.$langs->trans("GeneralAlert");
+        print '</td></tr>';
+
+        print '<tr><td class="tdtop titlefield">'.$langs->trans("PostnatalFeeding").'</td><td class="tdtop">';
         if ($action == 'edit' && $user->rights->societe->creer) {
             require_once(DOL_DOCUMENT_ROOT."/core/class/doleditor.class.php");
-            $doleditor=new DolEditor('note_postnataux',$object->note_postnataux,0,$height,'dolibarr_notes','In',false,false,$conf->fckeditor->enabled,6,'95%');
+            $doleditor=new DolEditor('note_alimentation',$object->note_alimentation,0,$height,'dolibarr_notes','In',false,false,$conf->fckeditor->enabled,6,'95%');
+            $doleditor->Create();
+        } else {
+            print nl2br($object->note_alimentation);
+        }
+        print '</td><td class="tdtop titlefield">'.$langs->trans("PostnatalSchooling").'</td><td class="tdtop">';
+        if ($action == 'edit' && $user->rights->societe->creer) {
+            $doleditor=new DolEditor('note_scolarite',$object->note_scolarite,0,$height,'dolibarr_notes','In',false,false,$conf->fckeditor->enabled,6,'95%');
+            $doleditor->Create();
+        } else {
+            print nl2br($object->note_scolarite);
+        }
+        print '</td></tr>';
+
+        $pevstatuses=array(''=>'', 'up_to_date'=>$langs->trans('VaccinationUpToDate'), 'incomplete'=>$langs->trans('VaccinationIncomplete'), 'not_started'=>$langs->trans('VaccinationNotStarted'), 'unknown'=>$langs->trans('VaccinationUnknown'));
+        $reminderstatuses=array(''=>'', 'up_to_date'=>$langs->trans('VaccinationUpToDate'), 'late'=>$langs->trans('VaccinationLate'), 'unknown'=>$langs->trans('VaccinationUnknown'));
+        print '<tr><td class="tdtop titlefield">'.$langs->trans("VaccinationPEV").'</td><td class="tdtop">';
+        if ($action == 'edit' && $user->rights->societe->creer) {
+            print '<select class="flat" name="statut_vaccination_pev"><option value="">'.$langs->trans('Select').'</option>';
+            foreach ($pevstatuses as $statuskey=>$statuslabel) {
+                if ($statuskey === '') continue;
+                print '<option value="'.dol_escape_htmltag($statuskey).'"'.($object->statut_vaccination_pev == $statuskey?' selected="selected"':'').'>'.dol_escape_htmltag($statuslabel).'</option>';
+            }
+            print '</select><br><br>';
+            $doleditor=new DolEditor('note_vaccination_pev',$object->note_vaccination_pev,0,$height,'dolibarr_notes','In',false,false,$conf->fckeditor->enabled,6,'95%');
+            $doleditor->Create();
+        } else {
+            if (!empty($object->statut_vaccination_pev) && isset($pevstatuses[$object->statut_vaccination_pev])) print dol_escape_htmltag($pevstatuses[$object->statut_vaccination_pev]).'<br>';
+            print nl2br($object->note_vaccination_pev);
+        }
+        print '</td><td class="tdtop titlefield">'.$langs->trans("VaccinationReminders").'</td><td class="tdtop">';
+        if ($action == 'edit' && $user->rights->societe->creer) {
+            print '<select class="flat" name="statut_vaccination_rappels"><option value="">'.$langs->trans('Select').'</option>';
+            foreach ($reminderstatuses as $statuskey=>$statuslabel) {
+                if ($statuskey === '') continue;
+                print '<option value="'.dol_escape_htmltag($statuskey).'"'.($object->statut_vaccination_rappels == $statuskey?' selected="selected"':'').'>'.dol_escape_htmltag($statuslabel).'</option>';
+            }
+            print '</select><br><br>';
+            $doleditor=new DolEditor('note_vaccination_rappels',$object->note_vaccination_rappels,0,$height,'dolibarr_notes','In',false,false,$conf->fckeditor->enabled,6,'95%');
+            $doleditor->Create();
+        } else {
+            if (!empty($object->statut_vaccination_rappels) && isset($reminderstatuses[$object->statut_vaccination_rappels])) print dol_escape_htmltag($reminderstatuses[$object->statut_vaccination_rappels]).'<br>';
+            print nl2br($object->note_vaccination_rappels);
+        }
+        print '</td></tr>';
+
+        print '<tr><td class="tdtop titlefield">'.$langs->trans("OtherPostnatalElements").'</td><td class="tdtop" colspan="3">';
+        if ($action == 'edit' && $user->rights->societe->creer) {
+            $doleditor=new DolEditor('note_postnataux',$object->note_postnataux,0,$height,'dolibarr_notes','In',false,false,$conf->fckeditor->enabled,6,'98%');
             $doleditor->Create();
         } else {
             print nl2br($object->note_postnataux);
         }
-        print '</td></tr></table>';
-        print '</div><div class="fichehalfright"><div class="ficheaddleft"></div></div></div>';
+        print '</td></tr></table></div>';
     }
 
 
