@@ -1,73 +1,102 @@
-##################################################
-# DOLIMED — dépôt limité au module CabinetMed
-##################################################
+# ============================================================================
+# Dolimed / CabinetMed
+# Depot limite au module htdocs/cabinetmed
+# ============================================================================
 
-# Ignorer tout le contenu du projet
+# Ignorer tout le projet par defaut
 /*
 
-# Autoriser les fichiers de gestion du dépôt
+# Conserver les fichiers de gestion du depot
 !/.gitignore
 !/README.md
 
-# Autoriser la traversée jusqu'au module
+# Autoriser la traversee du repertoire htdocs
 !/htdocs/
 /htdocs/*
 
-# Autoriser tout le code CabinetMed
+# Autoriser uniquement le module CabinetMed reel
 !/htdocs/cabinetmed/
 !/htdocs/cabinetmed/**
 
-##################################################
-# EXCLUSIONS À L’INTÉRIEUR DE CABINETMED
-##################################################
+# ============================================================================
+# Exclusions a l'interieur de CabinetMed
+# ============================================================================
 
-# Documents patients et fichiers générés
-/htdocs/cabinetmed/documents/
-/htdocs/cabinetmed/uploads/
-/htdocs/cabinetmed/files/
-/htdocs/cabinetmed/generated/
+# Documents patients, pieces jointes et fichiers generes
+**/documents/
+**/document/
+**/uploads/
+**/upload/
+**/files/
+**/generated/
+**/exports/
+**/export/
 
-# Répertoires temporaires
-/htdocs/cabinetmed/temp/
-/htdocs/cabinetmed/tmp/
-/htdocs/cabinetmed/cache/
-/htdocs/cabinetmed/sessions/
+# Repertoires temporaires, caches, sessions et journaux
+**/tmp/
+**/temp/
+**/cache/
+**/sessions/
+**/logs/
 
-# Journaux
-/htdocs/cabinetmed/logs/
+# Journaux et fichiers temporaires
 *.log
+*.tmp
+*.temp
+*.cache
+*.pid
+*.lock
 
-# Sauvegardes
+# Sauvegardes creees par les editeurs ou les administrateurs
+*.save
 *.bak
 *.backup
 *.old
 *.orig
-*.save
+*.rej
 *.swp
+*.swo
 *~
 
-# Archives et exports
+# Archives et exports de donnees
 *.zip
 *.tar
+*.tgz
 *.tar.gz
-*.sql.gz
-
-# Données médicales et exports
+*.gz
+*.7z
 *.csv
+*.tsv
+*.xls
 *.xlsx
 *.ods
+
+# Documents generes. Les modeles source ODT restent autorises.
 *.pdf
 
-# Secrets et configurations locales
-.env
-.env.*
-*.local.php
-config.local.php
-secrets.php
-credentials.php
+# Configuration locale et secrets
+**/.env
+**/.env.*
+**/*.local.php
+**/config.local.php
+**/secrets.php
+**/credentials.php
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx
 
-# Éditeurs et système
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
+# Fichiers des editeurs et du systeme
+**/.vscode/
+**/.idea/
+**/.DS_Store
+**/Thumbs.db
+
+# Couverture de tests et sorties de construction eventuelles
+**/coverage/
+**/build/
+**/dist/
+
+# Le SQL de structure et de migration sous htdocs/cabinetmed/sql reste suivi.
+# Ne pas ajouter ici une exclusion globale sur les fichiers *.sql.
+
