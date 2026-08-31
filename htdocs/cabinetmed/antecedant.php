@@ -50,6 +50,12 @@ $langs->load("cabinetmed@cabinetmed");
 $action = GETPOST('action','aZ09');
 if (empty($action)) $action='edit';
 
+// The ATCD page is shared by both consultation tabs. Pediatric-only fields
+// are displayed and saved exclusively when mode_cons=2.
+$mode_cons = GETPOST('mode_cons', 'int');
+if ($mode_cons != 2) $mode_cons = 1;
+$is_pediatrie = ($mode_cons == 2);
+
 // Security check
 $socid = GETPOST('socid','int');
 if ($user->societe_id) $socid=$user->societe_id;
@@ -65,13 +71,20 @@ if ($action == 'addupdate')
 {
     $error=0;
 
+    $note_antenataux = isset($_POST['note_antenataux']) ? $db->escape($_POST['note_antenataux']) : '';
+    $note_perinataux = isset($_POST['note_perinataux']) ? $db->escape($_POST['note_perinataux']) : '';
+    $note_postnataux = isset($_POST['note_postnataux']) ? $db->escape($_POST['note_postnataux']) : '';
+
     $db->begin();
 
-    $sql = "INSERT INTO ".MAIN_DB_PREFIX."cabinetmed_patient(rowid, note_antemed, note_antechirgen, note_antechirortho, note_anterhum, note_other, note_traitallergie, note_traitclass, note_traitintol, note_traitspec)";
-    $sql.= " VALUES('".$_POST["socid"]."',";
+    $sql = "INSERT INTO ".MAIN_DB_PREFIX."cabinetmed_patient(rowid, note_antemed, note_antechirgen, note_antechirortho, note_anterhum, note_other, note_traitallergie, note_traitclass, note_traitintol, note_traitspec";
+    if ($is_pediatrie) $sql.= ", note_antenataux, note_perinataux, note_postnataux";
+    $sql.= ")";
+    $sql.= " VALUES('".$socid."',";
     $sql.= " '".addslashes($_POST["note_antemed"])."','".addslashes($_POST["note_antechirgen"])."',";
     $sql.= " '".addslashes($_POST["note_antechirortho"])."','".addslashes($_POST["note_anterhum"])."','".addslashes($_POST["note_other"])."',";
     $sql.= " '".addslashes($_POST["note_traitallergie"])."','".addslashes($_POST["note_traitclass"])."','".addslashes($_POST["note_traitintol"])."','".addslashes($_POST["note_traitspec"])."'";
+    if ($is_pediatrie) $sql.= ", '".$note_antenataux."','".$note_perinataux."','".$note_postnataux."'";
     $sql.= ")";
     $result1 = $db->query($sql,1);
     //if (! $result) dol_print_error($db);
@@ -86,7 +99,12 @@ if ($action == 'addupdate')
     $sql.= " note_traitclass='".addslashes($_POST["note_traitclass"])."',";
     $sql.= " note_traitintol='".addslashes($_POST["note_traitintol"])."',";
     $sql.= " note_traitspec='".addslashes($_POST["note_traitspec"])."'";
-    $sql.= " WHERE rowid=".$_POST["socid"];
+    if ($is_pediatrie) {
+        $sql.= ", note_antenataux='".$note_antenataux."'";
+        $sql.= ", note_perinataux='".$note_perinataux."'";
+        $sql.= ", note_postnataux='".$note_postnataux."'";
+    }
+    $sql.= " WHERE rowid=".$socid;
     $result2 = $db->query($sql);
 
     $alert=($_POST["alert_antemed"]?'1':'0');
@@ -137,7 +155,30 @@ if ($action == 'addupdate')
         $error++; $mesg=$result10;
     }
 
-    if ((! $result2) || $result3 || $result4 || $result5 || $result6 || $result7 || $result8 || $result9 || $result10)
+    $result11='';
+    $result12='';
+    $result13='';
+    if ($is_pediatrie) {
+        $alert=(!empty($_POST["alert_antenataux"])?'1':'0');
+        $result11=addAlert($db, 'alert_antenataux', $socid, $alert);
+        if ($result11) {
+            $error++; $mesg=$result11;
+        }
+
+        $alert=(!empty($_POST["alert_perinataux"])?'1':'0');
+        $result12=addAlert($db, 'alert_perinataux', $socid, $alert);
+        if ($result12) {
+            $error++; $mesg=$result12;
+        }
+
+        $alert=(!empty($_POST["alert_postnataux"])?'1':'0');
+        $result13=addAlert($db, 'alert_postnataux', $socid, $alert);
+        if ($result13) {
+            $error++; $mesg=$result13;
+        }
+    }
+
+    if ((! $result2) || $result3 || $result4 || $result5 || $result6 || $result7 || $result8 || $result9 || $result10 || $result11 || $result12 || $result13)
     {
         dol_print_error($db);
         $db->rollback();
@@ -202,9 +243,22 @@ if ($socid > 0)
     print '<input type="hidden" name="token" value="'.$_SESSION['newtoken'].'">';
     print '<input type="hidden" name="socid" value="'.$object->id.'">';
     print '<input type="hidden" name="action" value="addupdate">';
+    print '<input type="hidden" name="mode_cons" value="'.$mode_cons.'">';
 
     $linkback = '<a href="'.dol_buildpath('/cabinetmed/patients.php', 1).'">'.$langs->trans("BackToList").'</a>';
     dol_banner_tab($object, 'socid', $linkback, ($user->societe_id?0:1), 'rowid', 'nom');
+
+    $url_atcd_general = $_SERVER["PHP_SELF"].'?socid='.$object->id.'&amp;mode_cons=1';
+    $url_atcd_pediatrie = $_SERVER["PHP_SELF"].'?socid='.$object->id.'&amp;mode_cons=2';
+    print '<div class="tabsAction">';
+    if ($is_pediatrie) {
+        print '<a class="butAction" href="'.$url_atcd_general.'">'.$langs->trans("MedecineGenerale").'</a>';
+        print '<span class="butActionRefused">'.$langs->trans("Pediatrie").'</span>';
+    } else {
+        print '<span class="butActionRefused">'.$langs->trans("MedecineGenerale").'</span>';
+        print '<a class="butAction" href="'.$url_atcd_pediatrie.'">'.$langs->trans("Pediatrie").'</a>';
+    }
+    print '</div>';
 
     print '<div class="underbanner clearboth"></div>';
     print '<table class="border tableforfield" width="100%">';
@@ -292,6 +346,51 @@ if ($socid > 0)
 
     print '</table>';
     print '</div></div></div>';
+
+    if ($is_pediatrie) {
+        print '<div class="fichecenter"><div class="fichehalfleft">';
+        print '<table class="border" width="100%" style="margin-bottom: 2px !important;">';
+        print '<tr height="80"><td class="tdtop titlefield">'.$langs->trans("AntecedentsAntenataux");
+        print '<br><input type="checkbox" name="alert_antenataux"'.((isset($_POST['alert_antenataux'])?GETPOST('alert_antenataux'):$object->alert_antenataux)?' checked="checked"':'').'> '.$langs->trans("Alert");
+        print '</td><td class="tdtop">';
+        if ($action == 'edit' && $user->rights->societe->creer) {
+            require_once(DOL_DOCUMENT_ROOT."/core/class/doleditor.class.php");
+            $doleditor=new DolEditor('note_antenataux',$object->note_antenataux,0,$height,'dolibarr_notes','In',false,false,$conf->fckeditor->enabled,6,'95%');
+            $doleditor->Create();
+        } else {
+            print nl2br($object->note_antenataux);
+        }
+        print '</td></tr></table>';
+        print '</div><div class="fichehalfright"><div class="ficheaddleft" style="margin-top: auto">';
+        print '<table class="border" width="100%" style="margin-bottom: 2px !important;">';
+        print '<tr height="80"><td class="tdtop titlefield">'.$langs->trans("AntecedentsPerinataux");
+        print '<br><input type="checkbox" name="alert_perinataux"'.((isset($_POST['alert_perinataux'])?GETPOST('alert_perinataux'):$object->alert_perinataux)?' checked="checked"':'').'> '.$langs->trans("Alert");
+        print '</td><td class="tdtop">';
+        if ($action == 'edit' && $user->rights->societe->creer) {
+            require_once(DOL_DOCUMENT_ROOT."/core/class/doleditor.class.php");
+            $doleditor=new DolEditor('note_perinataux',$object->note_perinataux,0,$height,'dolibarr_notes','In',false,false,$conf->fckeditor->enabled,6,'95%');
+            $doleditor->Create();
+        } else {
+            print nl2br($object->note_perinataux);
+        }
+        print '</td></tr></table>';
+        print '</div></div></div>';
+
+        print '<div class="fichecenter"><div class="fichehalfleft">';
+        print '<table class="border" width="100%" style="margin-bottom: 2px !important;">';
+        print '<tr height="80"><td class="tdtop titlefield">'.$langs->trans("AntecedentsPostnataux");
+        print '<br><input type="checkbox" name="alert_postnataux"'.((isset($_POST['alert_postnataux'])?GETPOST('alert_postnataux'):$object->alert_postnataux)?' checked="checked"':'').'> '.$langs->trans("Alert");
+        print '</td><td class="tdtop">';
+        if ($action == 'edit' && $user->rights->societe->creer) {
+            require_once(DOL_DOCUMENT_ROOT."/core/class/doleditor.class.php");
+            $doleditor=new DolEditor('note_postnataux',$object->note_postnataux,0,$height,'dolibarr_notes','In',false,false,$conf->fckeditor->enabled,6,'95%');
+            $doleditor->Create();
+        } else {
+            print nl2br($object->note_postnataux);
+        }
+        print '</td></tr></table>';
+        print '</div><div class="fichehalfright"><div class="ficheaddleft"></div></div></div>';
+    }
 
 
     print '<div class="fichecenter"><div class="fichehalfleft">';

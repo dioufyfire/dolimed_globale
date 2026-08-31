@@ -26,6 +26,9 @@ CREATE TABLE llx_cabinetmed_patient (
   note_traitallergie text,
   note_traitintol    text,
   note_traitspec     text,
+  note_antenataux    text,
+  note_perinataux    text,
+  note_postnataux    text,
   alert_antemed       smallint,
   alert_antechirgen   smallint,
   alert_antechirortho smallint,
@@ -35,5 +38,8 @@ CREATE TABLE llx_cabinetmed_patient (
   alert_traitallergie smallint,
   alert_traitintol    smallint,
   alert_traitspec     smallint,
+  alert_antenataux    smallint,
+  alert_perinataux    smallint,
+  alert_postnataux    smallint,
   alert_note          smallint
 ) ENGINE=innodb;
