@@ -144,14 +144,17 @@ function cabinetmed_completesubstitutionarray(&$substitutionarray,$langs,$object
         if ($object)
        	{
        	    $nbofnotes = 0;
-       	    if ($object->note_antemed) $nbofnotes++;
-           	if ($object->note_antechirgen) $nbofnotes++;
-           	if ($object->note_antechirortho) $nbofnotes++;
-           	if ($object->note_anterhum) $nbofnotes++;
-           	if ($object->note_traitallergie) $nbofnotes++;
-           	if ($object->note_traitclass) $nbofnotes++;
-           	if ($object->note_traitintol) $nbofnotes++;
-           	if ($object->note_traitspec) $nbofnotes++;
+            if ($object->note_antemed) $nbofnotes++;
+            if ($object->note_antechirgen) $nbofnotes++;
+            if ($object->note_antechirortho) $nbofnotes++;
+            if ($object->note_anterhum) $nbofnotes++;
+            if ($object->note_traitallergie) $nbofnotes++;
+            if ($object->note_traitclass) $nbofnotes++;
+            if ($object->note_traitintol) $nbofnotes++;
+            if ($object->note_traitspec) $nbofnotes++;
+            if ($object->note_antenataux) $nbofnotes++;
+            if ($object->note_perinataux) $nbofnotes++;
+            if ($object->note_postnataux) $nbofnotes++;
             if ($nbofnotes > 0) $substitutionarray['TabAntecedentsShort']=$langs->trans("AntecedentsShort").' <span class="badge">'.$nbofnotes.'</span>';
        	}
 
@@ -337,4 +340,3 @@ function cabinetmed_completesubstitutionarray(&$substitutionarray,$langs,$object
         }
     }
 }
-
