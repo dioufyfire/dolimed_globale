@@ -560,6 +560,10 @@ class Patient extends Societe
                 $this->alert_postnataux = $obj->alert_postnataux;
                 $this->alert_note = $obj->alert_note;
 
+                // Load the optional sickle cell block separately so a missing
+                // migration does not make the whole patient record unreadable.
+                $this->fetchDrepano($this->id);
+
                 // Retreive all extrafield
                 // fetch optionals attributes and labels
                 $this->fetch_optionals();
@@ -584,6 +588,55 @@ class Patient extends Societe
         if ($conf->global->PRODUIT_MULTIPRICES && empty($this->price_level)) $this->price_level=1;
 
         return $result;
+    }
+
+
+    /**
+     * Load patient-level sickle cell history.
+     *
+     * @param  int $patientid Patient/third-party id
+     * @return int            1 when found, 0 when empty or table unavailable
+     */
+    function fetchDrepano($patientid)
+    {
+        $fields=array(
+            'suivi', 'alert_general', 'profil_hb_patient', 'date_confirmation',
+            'reference_confirmation', 'note_identification', 'consanguinite',
+            'profil_hb_pere', 'profil_hb_mere', 'rang_fratrie',
+            'taille_fratrie', 'cas_fratrie', 'nombre_cas_fratrie',
+            'note_cas_fratrie', 'troubles_alimentaires',
+            'activite_professionnelle', 'vaccination_pev_date',
+            'vaccination_antityphique_statut', 'vaccination_antityphique_date',
+            'vaccination_antityphique_note', 'vaccination_pneumocoque_statut',
+            'vaccination_pneumocoque_date', 'vaccination_pneumocoque_note',
+            'vaccination_meningocoque_statut', 'vaccination_meningocoque_date',
+            'vaccination_meningocoque_note', 'vaccination_autre_libelle',
+            'vaccination_autre_statut', 'vaccination_autre_date',
+            'vaccination_autre_note', 'cvo_12_mois',
+            'hospitalisations_12_mois', 'complications_aigues',
+            'complications_chroniques', 'antecedents_medicochirurgicaux',
+            'transfusion_statut', 'derniere_transfusion_date',
+            'nombre_transfusions', 'note_transfusions'
+        );
+        foreach ($fields as $field) $this->{'drepano_'.$field}='';
+
+        $sql='SELECT '.implode(', ', $fields);
+        $sql.=' FROM '.MAIN_DB_PREFIX.'cabinetmed_patient_drepano';
+        $sql.=' WHERE fk_patient='.(int) $patientid;
+        $resql=$this->db->query($sql);
+        if (!$resql) {
+            dol_syslog(get_class($this).'::fetchDrepano table unavailable: '.$this->db->lasterror(), LOG_WARNING);
+            return 0;
+        }
+
+        $obj=$this->db->fetch_object($resql);
+        if (!$obj) {
+            $this->db->free($resql);
+            return 0;
+        }
+        foreach ($fields as $field) $this->{'drepano_'.$field}=$obj->$field;
+        $this->db->free($resql);
+        return 1;
     }
 
 

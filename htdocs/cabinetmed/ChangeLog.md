@@ -1,5 +1,13 @@
 # ChangeLog
 
+## 7.0.4
+
+- Add a shared Sickle Cell Disease history block to General Medicine and Pediatrics.
+- Add family, personal, vaccination, complication and transfusion fields.
+- Add a configurable other vaccine with label, status, date and observations.
+- Count the whole Sickle Cell Disease section as one history item and expose its general alert in consultations.
+- Add a documented, data-preserving rollback procedure.
+
 ## 7.0.3
 
 - Group pediatric postnatal history under one general alert.

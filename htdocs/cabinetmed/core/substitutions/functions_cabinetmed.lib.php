@@ -156,6 +156,36 @@ function cabinetmed_completesubstitutionarray(&$substitutionarray,$langs,$object
             if ($object->note_perinataux) $nbofnotes++;
             // The whole Postnatal section counts as a single history item.
             if ($object->note_postnataux || $object->note_alimentation || $object->statut_vaccination_pev || $object->note_vaccination_pev || $object->statut_vaccination_rappels || $object->note_vaccination_rappels || $object->note_scolarite) $nbofnotes++;
+            // The whole sickle cell section counts as a single history item.
+            $drepanoFields=array(
+                'drepano_suivi', 'drepano_alert_general', 'drepano_profil_hb_patient',
+                'drepano_date_confirmation', 'drepano_reference_confirmation',
+                'drepano_note_identification', 'drepano_consanguinite',
+                'drepano_profil_hb_pere', 'drepano_profil_hb_mere',
+                'drepano_rang_fratrie', 'drepano_taille_fratrie',
+                'drepano_cas_fratrie', 'drepano_nombre_cas_fratrie',
+                'drepano_note_cas_fratrie', 'drepano_troubles_alimentaires',
+                'drepano_activite_professionnelle', 'drepano_vaccination_pev_date',
+                'drepano_vaccination_antityphique_statut', 'drepano_vaccination_antityphique_date',
+                'drepano_vaccination_antityphique_note', 'drepano_vaccination_pneumocoque_statut',
+                'drepano_vaccination_pneumocoque_date', 'drepano_vaccination_pneumocoque_note',
+                'drepano_vaccination_meningocoque_statut', 'drepano_vaccination_meningocoque_date',
+                'drepano_vaccination_meningocoque_note', 'drepano_vaccination_autre_libelle',
+                'drepano_vaccination_autre_statut', 'drepano_vaccination_autre_date',
+                'drepano_vaccination_autre_note', 'drepano_cvo_12_mois',
+                'drepano_hospitalisations_12_mois', 'drepano_complications_aigues',
+                'drepano_complications_chroniques', 'drepano_antecedents_medicochirurgicaux',
+                'drepano_transfusion_statut', 'drepano_derniere_transfusion_date',
+                'drepano_nombre_transfusions', 'drepano_note_transfusions'
+            );
+            $hasDrepano=false;
+            foreach ($drepanoFields as $drepanoField) {
+                if (!empty($object->$drepanoField)) {
+                    $hasDrepano=true;
+                    break;
+                }
+            }
+            if ($hasDrepano) $nbofnotes++;
             if ($nbofnotes > 0) $substitutionarray['TabAntecedentsShort']=$langs->trans("AntecedentsShort").' <span class="badge">'.$nbofnotes.'</span>';
        	}
 

@@ -43,6 +43,7 @@ if (! $res) die("Include of main fails");
 include_once(DOL_DOCUMENT_ROOT."/core/lib/company.lib.php");
 include_once("./class/patient.class.php");
 include_once("./lib/cabinetmed.lib.php");
+include_once("./lib/drepano.lib.php");
 
 $langs->load("companies");
 $langs->load("cabinetmed@cabinetmed");
@@ -82,17 +83,19 @@ if ($action == 'addupdate')
     $note_scolarite = isset($_POST['note_scolarite']) ? $db->escape($_POST['note_scolarite']) : '';
     if (!in_array($statut_vaccination_pev, array('', 'up_to_date', 'incomplete', 'not_started', 'unknown'), true)) $statut_vaccination_pev = '';
     if (!in_array($statut_vaccination_rappels, array('', 'up_to_date', 'late', 'unknown'), true)) $statut_vaccination_rappels = '';
+    $drepano_values=cabinetmed_drepano_post_values();
 
     $db->begin();
 
-    $sql = "INSERT INTO ".MAIN_DB_PREFIX."cabinetmed_patient(rowid, note_antemed, note_antechirgen, note_antechirortho, note_anterhum, note_other, note_traitallergie, note_traitclass, note_traitintol, note_traitspec";
-    if ($is_pediatrie) $sql.= ", note_antenataux, note_perinataux, note_postnataux, note_alimentation, statut_vaccination_pev, note_vaccination_pev, statut_vaccination_rappels, note_vaccination_rappels, note_scolarite";
+    $sql = "INSERT INTO ".MAIN_DB_PREFIX."cabinetmed_patient(rowid, note_antemed, note_antechirgen, note_antechirortho, note_anterhum, note_other, note_traitallergie, note_traitclass, note_traitintol, note_traitspec, note_alimentation, statut_vaccination_pev, note_vaccination_pev, note_scolarite";
+    if ($is_pediatrie) $sql.= ", note_antenataux, note_perinataux, note_postnataux, statut_vaccination_rappels, note_vaccination_rappels";
     $sql.= ")";
     $sql.= " VALUES('".$socid."',";
     $sql.= " '".addslashes($_POST["note_antemed"])."','".addslashes($_POST["note_antechirgen"])."',";
     $sql.= " '".addslashes($_POST["note_antechirortho"])."','".addslashes($_POST["note_anterhum"])."','".addslashes($_POST["note_other"])."',";
     $sql.= " '".addslashes($_POST["note_traitallergie"])."','".addslashes($_POST["note_traitclass"])."','".addslashes($_POST["note_traitintol"])."','".addslashes($_POST["note_traitspec"])."'";
-    if ($is_pediatrie) $sql.= ", '".$note_antenataux."','".$note_perinataux."','".$note_postnataux."','".$note_alimentation."','".$statut_vaccination_pev."','".$note_vaccination_pev."','".$statut_vaccination_rappels."','".$note_vaccination_rappels."','".$note_scolarite."'";
+    $sql.= ", '".$note_alimentation."','".$statut_vaccination_pev."','".$note_vaccination_pev."','".$note_scolarite."'";
+    if ($is_pediatrie) $sql.= ", '".$note_antenataux."','".$note_perinataux."','".$note_postnataux."','".$statut_vaccination_rappels."','".$note_vaccination_rappels."'";
     $sql.= ")";
     $result1 = $db->query($sql,1);
     //if (! $result) dol_print_error($db);
@@ -106,17 +109,17 @@ if ($action == 'addupdate')
     $sql.= " note_traitallergie='".addslashes($_POST["note_traitallergie"])."',";
     $sql.= " note_traitclass='".addslashes($_POST["note_traitclass"])."',";
     $sql.= " note_traitintol='".addslashes($_POST["note_traitintol"])."',";
-    $sql.= " note_traitspec='".addslashes($_POST["note_traitspec"])."'";
+    $sql.= " note_traitspec='".addslashes($_POST["note_traitspec"])."',";
+    $sql.= " note_alimentation='".$note_alimentation."',";
+    $sql.= " statut_vaccination_pev='".$statut_vaccination_pev."',";
+    $sql.= " note_vaccination_pev='".$note_vaccination_pev."',";
+    $sql.= " note_scolarite='".$note_scolarite."'";
     if ($is_pediatrie) {
         $sql.= ", note_antenataux='".$note_antenataux."'";
         $sql.= ", note_perinataux='".$note_perinataux."'";
         $sql.= ", note_postnataux='".$note_postnataux."'";
-        $sql.= ", note_alimentation='".$note_alimentation."'";
-        $sql.= ", statut_vaccination_pev='".$statut_vaccination_pev."'";
-        $sql.= ", note_vaccination_pev='".$note_vaccination_pev."'";
         $sql.= ", statut_vaccination_rappels='".$statut_vaccination_rappels."'";
         $sql.= ", note_vaccination_rappels='".$note_vaccination_rappels."'";
-        $sql.= ", note_scolarite='".$note_scolarite."'";
     }
     $sql.= " WHERE rowid=".$socid;
     $result2 = $db->query($sql);
@@ -192,7 +195,12 @@ if ($action == 'addupdate')
         }
     }
 
-    if ((! $result2) || $result3 || $result4 || $result5 || $result6 || $result7 || $result8 || $result9 || $result10 || $result11 || $result12 || $result13)
+    $result14=cabinetmed_drepano_save($db, $socid, $drepano_values);
+    if ($result14) {
+        $error++; $mesg=$result14;
+    }
+
+    if ((! $result2) || $result3 || $result4 || $result5 || $result6 || $result7 || $result8 || $result9 || $result10 || $result11 || $result12 || $result13 || $result14)
     {
         dol_print_error($db);
         $db->rollback();
@@ -455,6 +463,158 @@ if ($socid > 0)
         }
         print '</td></tr></table></div>';
     }
+
+    // Sickle cell disease history is shared by General Medicine and Pediatrics.
+    // In Pediatrics, Feeding, PEV and Schooling stay editable only in Postnatal
+    // to avoid duplicate form fields; their current values are repeated here.
+    $edit_drepano=($action == 'edit' && $user->rights->societe->creer);
+    $yesnooptions=array(
+        ''=>$langs->trans('Select'),
+        'yes'=>$langs->trans('Yes'),
+        'no'=>$langs->trans('No'),
+        'unknown'=>$langs->trans('VaccinationUnknown')
+    );
+    $hboptions=array(
+        ''=>$langs->trans('Select'), 'AA'=>'AA', 'AS'=>'AS', 'AC'=>'AC',
+        'SS'=>'SS', 'SC'=>'SC', 'Sbeta0'=>'Sβ⁰', 'SbetaPlus'=>'Sβ+',
+        'other'=>$langs->trans('Other'), 'unknown'=>$langs->trans('VaccinationUnknown')
+    );
+    $drepvaccinestatuses=array(
+        ''=>$langs->trans('Select'),
+        'up_to_date'=>$langs->trans('VaccinationUpToDate'),
+        'to_do'=>$langs->trans('VaccinationToDo'),
+        'unknown'=>$langs->trans('VaccinationUnknown')
+    );
+    $sharedpevstatuses=array(
+        ''=>$langs->trans('Select'),
+        'up_to_date'=>$langs->trans('VaccinationUpToDate'),
+        'incomplete'=>$langs->trans('VaccinationIncomplete'),
+        'not_started'=>$langs->trans('VaccinationNotStarted'),
+        'unknown'=>$langs->trans('VaccinationUnknown')
+    );
+
+    print '<div class="fichecenter">';
+    print '<table class="border" width="100%" style="margin: 12px 0 2px 0 !important;">';
+    print '<tr class="liste_titre"><td colspan="4">'.$langs->trans('SickleCellDisease');
+    print ' &nbsp; <input type="checkbox" name="drepano_suivi"'.(!empty($object->drepano_suivi)?' checked="checked"':'').'> '.$langs->trans('SickleCellFollowUp');
+    print ' &nbsp; <input type="checkbox" name="drepano_alert_general"'.(!empty($object->drepano_alert_general)?' checked="checked"':'').'> '.$langs->trans('GeneralAlert');
+    print '</td></tr>';
+
+    print '<tr class="liste_titre"><td colspan="4">'.$langs->trans('SickleCellIdentification').'</td></tr>';
+    print '<tr><td class="titlefield">'.$langs->trans('HemoglobinProfilePatient').'</td><td>';
+    print cabinetmed_drepano_select_html('drepano_profil_hb_patient', $object->drepano_profil_hb_patient, $hboptions, $edit_drepano);
+    print '</td><td class="titlefield">'.$langs->trans('ConfirmationDate').'</td><td>';
+    print cabinetmed_drepano_input_html('drepano_date_confirmation', $object->drepano_date_confirmation, 'date', $edit_drepano, '');
+    print '</td></tr>';
+    print '<tr><td class="titlefield">'.$langs->trans('ReferenceLaboratory').'</td><td>';
+    print cabinetmed_drepano_input_html('drepano_reference_confirmation', $object->drepano_reference_confirmation, 'text', $edit_drepano, 'style="width:95%"');
+    print '</td><td class="titlefield">'.$langs->trans('Notes').'</td><td>';
+    print cabinetmed_drepano_textarea_html('drepano_note_identification', $object->drepano_note_identification, $edit_drepano, 2);
+    print '</td></tr>';
+
+    print '<tr class="liste_titre"><td colspan="4">'.$langs->trans('FamilyHistory').'</td></tr>';
+    print '<tr><td class="titlefield">'.$langs->trans('Consanguinity').'</td><td>';
+    print cabinetmed_drepano_select_html('drepano_consanguinite', $object->drepano_consanguinite, $yesnooptions, $edit_drepano);
+    print '</td><td class="titlefield">'.$langs->trans('SiblingRankAndCount').'</td><td>';
+    print $langs->trans('SiblingRank').' '.cabinetmed_drepano_input_html('drepano_rang_fratrie', $object->drepano_rang_fratrie, 'number', $edit_drepano, 'min="0" style="width:70px"');
+    print ' &nbsp; '.$langs->trans('SiblingCount').' '.cabinetmed_drepano_input_html('drepano_taille_fratrie', $object->drepano_taille_fratrie, 'number', $edit_drepano, 'min="0" style="width:70px"');
+    print '</td></tr>';
+    print '<tr><td class="titlefield">'.$langs->trans('HemoglobinProfileFather').'</td><td>';
+    print cabinetmed_drepano_select_html('drepano_profil_hb_pere', $object->drepano_profil_hb_pere, $hboptions, $edit_drepano);
+    print '</td><td class="titlefield">'.$langs->trans('HemoglobinProfileMother').'</td><td>';
+    print cabinetmed_drepano_select_html('drepano_profil_hb_mere', $object->drepano_profil_hb_mere, $hboptions, $edit_drepano);
+    print '</td></tr>';
+    print '<tr><td class="titlefield">'.$langs->trans('SiblingSickleCellCases').'</td><td>';
+    print cabinetmed_drepano_select_html('drepano_cas_fratrie', $object->drepano_cas_fratrie, $yesnooptions, $edit_drepano);
+    print ' &nbsp; '.$langs->trans('Number').' '.cabinetmed_drepano_input_html('drepano_nombre_cas_fratrie', $object->drepano_nombre_cas_fratrie, 'number', $edit_drepano, 'min="0" style="width:70px"');
+    print '</td><td class="titlefield">'.$langs->trans('Details').'</td><td>';
+    print cabinetmed_drepano_textarea_html('drepano_note_cas_fratrie', $object->drepano_note_cas_fratrie, $edit_drepano, 2);
+    print '</td></tr>';
+
+    print '<tr class="liste_titre"><td colspan="4">'.$langs->trans('PersonalHistory').'</td></tr>';
+    print '<tr><td class="titlefield">'.$langs->trans('FeedingAndBreastfeeding').'</td><td>';
+    if ($is_pediatrie) {
+        print nl2br(dol_escape_htmltag($object->note_alimentation));
+        print '<br><span class="opacitymedium">'.$langs->trans('SharedWithPostnatal').'</span>';
+    } else {
+        print cabinetmed_drepano_textarea_html('note_alimentation', $object->note_alimentation, $edit_drepano, 3);
+    }
+    print '</td><td class="titlefield">'.$langs->trans('FeedingDisorders').'</td><td>';
+    print cabinetmed_drepano_textarea_html('drepano_troubles_alimentaires', $object->drepano_troubles_alimentaires, $edit_drepano, 3);
+    print '</td></tr>';
+    print '<tr><td class="titlefield">'.$langs->trans('PostnatalSchooling').'</td><td>';
+    if ($is_pediatrie) {
+        print nl2br(dol_escape_htmltag($object->note_scolarite));
+        print '<br><span class="opacitymedium">'.$langs->trans('SharedWithPostnatal').'</span>';
+    } else {
+        print cabinetmed_drepano_textarea_html('note_scolarite', $object->note_scolarite, $edit_drepano, 2);
+    }
+    print '</td><td class="titlefield">'.$langs->trans('ProfessionalActivity').'</td><td>';
+    print cabinetmed_drepano_textarea_html('drepano_activite_professionnelle', $object->drepano_activite_professionnelle, $edit_drepano, 2);
+    print '</td></tr>';
+
+    print '<tr class="liste_titre"><td colspan="4">'.$langs->trans('Vaccinations').'</td></tr>';
+    print '<tr><td class="titlefield">'.$langs->trans('VaccinationPEV').'</td><td>';
+    if ($is_pediatrie) {
+        if (!empty($object->statut_vaccination_pev) && isset($sharedpevstatuses[$object->statut_vaccination_pev])) print dol_escape_htmltag($sharedpevstatuses[$object->statut_vaccination_pev]).'<br>';
+        print nl2br(dol_escape_htmltag($object->note_vaccination_pev));
+        print '<br><span class="opacitymedium">'.$langs->trans('SharedWithPostnatal').'</span>';
+    } else {
+        print cabinetmed_drepano_select_html('statut_vaccination_pev', $object->statut_vaccination_pev, $sharedpevstatuses, $edit_drepano).'<br>';
+        print cabinetmed_drepano_textarea_html('note_vaccination_pev', $object->note_vaccination_pev, $edit_drepano, 2);
+    }
+    print '</td><td class="titlefield">'.$langs->trans('LastKnownDate').'</td><td>';
+    print cabinetmed_drepano_input_html('drepano_vaccination_pev_date', $object->drepano_vaccination_pev_date, 'date', $edit_drepano, '');
+    print '</td></tr>';
+
+    $vaccines=array(
+        'antityphique'=>'VaccinationTyphoid',
+        'pneumocoque'=>'VaccinationPneumococcal',
+        'meningocoque'=>'VaccinationMeningococcal'
+    );
+    foreach ($vaccines as $vaccinekey=>$vaccinelabel) {
+        print '<tr><td class="titlefield">'.$langs->trans($vaccinelabel).'</td><td>';
+        print cabinetmed_drepano_select_html('drepano_vaccination_'.$vaccinekey.'_statut', $object->{'drepano_vaccination_'.$vaccinekey.'_statut'}, $drepvaccinestatuses, $edit_drepano);
+        print ' &nbsp; '.cabinetmed_drepano_input_html('drepano_vaccination_'.$vaccinekey.'_date', $object->{'drepano_vaccination_'.$vaccinekey.'_date'}, 'date', $edit_drepano, '');
+        print '</td><td class="titlefield">'.$langs->trans('Observations').'</td><td>';
+        print cabinetmed_drepano_textarea_html('drepano_vaccination_'.$vaccinekey.'_note', $object->{'drepano_vaccination_'.$vaccinekey.'_note'}, $edit_drepano, 2);
+        print '</td></tr>';
+    }
+    print '<tr><td class="titlefield">'.$langs->trans('OtherVaccine').'</td><td>';
+    print cabinetmed_drepano_input_html('drepano_vaccination_autre_libelle', $object->drepano_vaccination_autre_libelle, 'text', $edit_drepano, 'placeholder="'.$langs->trans('SpecifyVaccine').'" style="width:95%"');
+    print '<br>'.cabinetmed_drepano_select_html('drepano_vaccination_autre_statut', $object->drepano_vaccination_autre_statut, $drepvaccinestatuses, $edit_drepano);
+    print ' &nbsp; '.cabinetmed_drepano_input_html('drepano_vaccination_autre_date', $object->drepano_vaccination_autre_date, 'date', $edit_drepano, '');
+    print '</td><td class="titlefield">'.$langs->trans('Observations').'</td><td>';
+    print cabinetmed_drepano_textarea_html('drepano_vaccination_autre_note', $object->drepano_vaccination_autre_note, $edit_drepano, 2);
+    print '</td></tr>';
+
+    print '<tr class="liste_titre"><td colspan="4">'.$langs->trans('MedicalSurgicalEvolution').'</td></tr>';
+    print '<tr><td class="titlefield">'.$langs->trans('CVO12Months').'</td><td>';
+    print cabinetmed_drepano_input_html('drepano_cvo_12_mois', $object->drepano_cvo_12_mois, 'number', $edit_drepano, 'min="0" style="width:90px"');
+    print '</td><td class="titlefield">'.$langs->trans('Hospitalizations12Months').'</td><td>';
+    print cabinetmed_drepano_input_html('drepano_hospitalisations_12_mois', $object->drepano_hospitalisations_12_mois, 'number', $edit_drepano, 'min="0" style="width:90px"');
+    print '</td></tr>';
+    print '<tr><td class="titlefield">'.$langs->trans('AcuteComplications').'</td><td>';
+    print cabinetmed_drepano_textarea_html('drepano_complications_aigues', $object->drepano_complications_aigues, $edit_drepano, 3);
+    print '</td><td class="titlefield">'.$langs->trans('ChronicComplications').'</td><td>';
+    print cabinetmed_drepano_textarea_html('drepano_complications_chroniques', $object->drepano_complications_chroniques, $edit_drepano, 3);
+    print '</td></tr>';
+    print '<tr><td class="titlefield">'.$langs->trans('MedicalSurgicalHistory').'</td><td colspan="3">';
+    print cabinetmed_drepano_textarea_html('drepano_antecedents_medicochirurgicaux', $object->drepano_antecedents_medicochirurgicaux, $edit_drepano, 3);
+    print '</td></tr>';
+
+    print '<tr class="liste_titre"><td colspan="4">'.$langs->trans('Transfusions').'</td></tr>';
+    print '<tr><td class="titlefield">'.$langs->trans('TransfusionHistory').'</td><td>';
+    print cabinetmed_drepano_select_html('drepano_transfusion_statut', $object->drepano_transfusion_statut, $yesnooptions, $edit_drepano);
+    print '</td><td class="titlefield">'.$langs->trans('LastTransfusionDate').'</td><td>';
+    print cabinetmed_drepano_input_html('drepano_derniere_transfusion_date', $object->drepano_derniere_transfusion_date, 'date', $edit_drepano, '');
+    print '</td></tr>';
+    print '<tr><td class="titlefield">'.$langs->trans('ApproximateTransfusionCount').'</td><td>';
+    print cabinetmed_drepano_input_html('drepano_nombre_transfusions', $object->drepano_nombre_transfusions, 'number', $edit_drepano, 'min="0" style="width:90px"');
+    print '</td><td class="titlefield">'.$langs->trans('TransfusionNotes').'</td><td>';
+    print cabinetmed_drepano_textarea_html('drepano_note_transfusions', $object->drepano_note_transfusions, $edit_drepano, 2);
+    print '</td></tr>';
+    print '</table></div>';
 
 
     print '<div class="fichecenter"><div class="fichehalfleft">';
